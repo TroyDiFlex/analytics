@@ -3,9 +3,8 @@
 //  + fallback на localStorage пока не настроен
 // =============================================
 
-// URL Apps Script — пользователь вставит сюда после настройки Google Таблицы
-// Инструкция: смотри файл ИНСТРУКЦИЯ_GOOGLE_SHEETS.md
-const SCRIPT_URL = localStorage.getItem('script_url') || '';
+// URL Apps Script
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby4BjEWBgxpJMswEjC_GD1CeF5Oq9du7UyehkTI7lPSl4lVLOr4eYkJA2o9OmIJzMoh/exec';
 
 // Ключ сессии — вводится один раз при входе, хранится в localStorage
 function getSecretKey() {
