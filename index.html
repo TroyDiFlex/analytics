@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Трекер обучения — Продуктовый аналитик</title>
+  <meta name="description" content="Личный трекер прогресса по роадмапу продуктового аналитика" />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ==================== ЭКРАН ВХОДА ==================== -->
+  <div id="login-screen" class="login-screen">
+    <div class="login-card">
+      <div class="login-logo">
+        <i class="ti ti-chart-dots-3"></i>
+      </div>
+      <h1 class="login-title">Трекер аналитика</h1>
+      <p class="login-subtitle">Введи секретный ключ для доступа к своему прогрессу</p>
+      <div class="login-form">
+        <div class="input-wrap">
+          <i class="ti ti-key input-icon"></i>
+          <input
+            type="password"
+            id="key-input"
+            class="key-input"
+            placeholder="Секретный ключ..."
+            autocomplete="off"
+          />
+        </div>
+        <button id="login-btn" class="login-btn" onclick="handleLogin()">
+          <i class="ti ti-arrow-right"></i>
+          Войти
+        </button>
+      </div>
+      <p id="login-error" class="login-error hidden">Неверный ключ. Попробуй ещё раз.</p>
+      <p id="login-loading" class="login-loading hidden">
+        <i class="ti ti-loader spin"></i> Загружаю прогресс...
+      </p>
+    </div>
+  </div>
+
+  <!-- ==================== ГЛАВНОЕ ПРИЛОЖЕНИЕ ==================== -->
+  <div id="app" class="app hidden">
+
+    <!-- ШАПКА -->
+    <header class="header">
+      <div class="header-left">
+        <i class="ti ti-chart-dots-3 header-logo-icon"></i>
+        <div>
+          <span class="header-title">Продуктовый аналитик</span>
+          <span class="header-subtitle">Роадмап с нуля до трудоустройства</span>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="header-stats">
+          <span id="header-progress-text" class="header-progress-text">0 из 32 тем</span>
+          <div class="header-progress-bar-wrap">
+            <div id="header-progress-bar" class="header-progress-bar" style="width:0%"></div>
+          </div>
+          <span id="header-days" class="header-days">день 1</span>
+        </div>
+        <button class="btn-icon" title="Скачать прогресс" onclick="exportProgress()">
+          <i class="ti ti-download"></i>
+        </button>
+        <button class="btn-icon" title="Сбросить ключ и выйти" onclick="logout()">
+          <i class="ti ti-logout"></i>
+        </button>
+      </div>
+    </header>
+
+    <div class="layout">
+
+      <!-- БОКОВАЯ ПАНЕЛЬ -->
+      <aside class="sidebar">
+        <div class="sidebar-inner">
+          <div class="sidebar-overall">
+            <div class="sidebar-overall-label">Общий прогресс</div>
+            <div class="sidebar-overall-bar-wrap">
+              <div id="sidebar-overall-bar" class="sidebar-overall-bar" style="width:0%"></div>
+            </div>
+            <div id="sidebar-overall-text" class="sidebar-overall-text">0 / 32 топиков</div>
+          </div>
+          <nav class="sidebar-nav" id="sidebar-nav">
+            <!-- Генерируется JS -->
+          </nav>
+        </div>
+      </aside>
+
+      <!-- ОСНОВНОЙ КОНТЕНТ -->
+      <main class="main" id="main-content">
+        <!-- Генерируется JS -->
+      </main>
+
+    </div>
+  </div>
+
+  <!-- ИНДИКАТОР СОХРАНЕНИЯ -->
+  <div id="save-indicator" class="save-indicator hidden">
+    <i class="ti ti-check"></i> Сохранено
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
