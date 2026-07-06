@@ -14,6 +14,8 @@ document.getElementById('key-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') handleLogin();
 });
 
+setupActivityCalendar();
+
 async function handleLogin() {
   const input = document.getElementById('key-input').value.trim();
   if (!input) return;
@@ -131,10 +133,12 @@ function updateHeaderStats() {
   document.getElementById('header-progress-bar').style.width  = pct + '%';
 
   if (progress && progress.started) {
-    const start = new Date(progress.started);
-    const now   = new Date();
-    const days  = Math.max(1, Math.floor((now - start) / 86400000) + 1);
-    document.getElementById('header-days').textContent = `день ${days}`;
+    const activity = getActivityStats();
+    const daysEl = document.getElementById('header-days');
+    daysEl.textContent = `${activity.streak} ${pluralizeDays(activity.streak)} подряд`;
+    daysEl.title = activity.totalDays
+      ? 'Открыть календарь активности'
+      : 'Активность появится после отмеченных тем или задач';
   }
 }
 
@@ -338,6 +342,7 @@ function toggleTopic(phaseId, idx) {
 
   ph.topics[idx] = done ? null : new Date().toISOString().slice(0, 10);
   progress.phases[phaseId] = ph;
+  markActivity();
   saveProgress(progress);
 
   // Перерисовываем этап и статистику
@@ -352,6 +357,7 @@ function toggleTask(phaseId, idx) {
 
   ph.tasks[idx] = done ? null : new Date().toISOString().slice(0, 10);
   progress.phases[phaseId] = ph;
+  markActivity();
   saveProgress(progress);
 
   openPhase(phaseId);
@@ -366,6 +372,7 @@ function onPhaseNote(phaseId, value) {
   const ph = getPhaseProgress(phaseId);
   ph.notes.phase = value;
   progress.phases[phaseId] = ph;
+  markActivity();
   saveProgress(progress);
 }
 
@@ -373,6 +380,7 @@ function onTaskNote(phaseId, taskIdx, value) {
   const ph = getPhaseProgress(phaseId);
   ph.notes[`task_${taskIdx}`] = value;
   progress.phases[phaseId] = ph;
+  markActivity();
   saveProgress(progress);
 }
 
@@ -431,6 +439,286 @@ function formatDate(isoDate) {
   if (!isoDate) return '';
   const d = new Date(isoDate);
   return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function setupActivityCalendar() {
+  const daysEl = document.getElementById('header-days');
+  if (!daysEl) return;
+
+  daysEl.setAttribute('role', 'button');
+  daysEl.setAttribute('tabindex', '0');
+  daysEl.addEventListener('click', event => {
+    event.stopPropagation();
+    toggleActivityCalendar();
+  });
+  daysEl.addEventListener('keydown', event => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    toggleActivityCalendar();
+  });
+
+  document.addEventListener('click', event => {
+    const popover = document.getElementById('activity-popover');
+    if (!popover || popover.classList.contains('hidden')) return;
+    if (popover.contains(event.target) || daysEl.contains(event.target)) return;
+    closeActivityCalendar();
+  });
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') closeActivityCalendar();
+  });
+
+  window.addEventListener('resize', positionActivityCalendar);
+}
+
+function toggleActivityCalendar() {
+  const popover = ensureActivityPopover();
+  if (popover.classList.contains('hidden')) {
+    openActivityCalendar();
+  } else {
+    closeActivityCalendar();
+  }
+}
+
+function openActivityCalendar() {
+  const popover = ensureActivityPopover();
+  popover.innerHTML = renderActivityCalendar();
+  popover.classList.remove('hidden');
+  document.getElementById('header-days')?.classList.add('active');
+  positionActivityCalendar();
+}
+
+function closeActivityCalendar() {
+  const popover = document.getElementById('activity-popover');
+  if (popover) popover.classList.add('hidden');
+  document.getElementById('header-days')?.classList.remove('active');
+}
+
+function ensureActivityPopover() {
+  let popover = document.getElementById('activity-popover');
+  if (popover) return popover;
+
+  popover = document.createElement('div');
+  popover.id = 'activity-popover';
+  popover.className = 'activity-popover hidden';
+  document.body.appendChild(popover);
+  return popover;
+}
+
+function positionActivityCalendar() {
+  const popover = document.getElementById('activity-popover');
+  const anchor = document.getElementById('header-days');
+  if (!popover || !anchor || popover.classList.contains('hidden')) return;
+
+  const rect = anchor.getBoundingClientRect();
+  popover.style.top = `${rect.bottom + 8}px`;
+  popover.style.right = `${Math.max(12, window.innerWidth - rect.right)}px`;
+}
+
+function renderActivityCalendar() {
+  const activity = getActivityStats();
+  const emptyText = activity.totalDays
+    ? ''
+    : '<div class="activity-empty">Пока нет отмеченных тем или задач.</div>';
+
+  return `
+    <div class="activity-popover-head">
+      <div>
+        <div class="activity-title">Активность</div>
+        <div class="activity-subtitle">По отмеченным темам и задачам</div>
+      </div>
+      <button class="activity-close" type="button" title="Закрыть" onclick="closeActivityCalendar()">
+        <i class="ti ti-x"></i>
+      </button>
+    </div>
+    <div class="activity-summary">
+      <div>
+        <strong>${activity.streak}</strong>
+        <span>${pluralizeDays(activity.streak)} подряд</span>
+      </div>
+      <div>
+        <strong>${activity.totalDays}</strong>
+        <span>${pluralizeActiveDays(activity.totalDays)}</span>
+      </div>
+      <div>
+        <strong>${activity.totalActions}</strong>
+        <span>${pluralizeActions(activity.totalActions)}</span>
+      </div>
+    </div>
+    ${emptyText}
+    <div class="activity-months">
+      ${getActivityMonths(activity.map).map(month => renderActivityMonth(month.year, month.month, activity.map)).join('')}
+    </div>
+    <div class="activity-legend">
+      <span><i class="activity-dot"></i> нет</span>
+      <span><i class="activity-dot active"></i> была активность</span>
+    </div>
+  `;
+}
+
+function renderActivityMonth(year, month, activityMap) {
+  const firstDay = new Date(Date.UTC(year, month, 1));
+  const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  const startOffset = (firstDay.getUTCDay() + 6) % 7;
+  const todayIso = getTodayIsoDate();
+  const monthTitle = firstDay.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+  const weekdays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+  const cells = [];
+
+  for (let i = 0; i < startOffset; i++) {
+    cells.push('<div class="activity-day empty"></div>');
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const iso = toIsoDate(year, month, day);
+    const count = activityMap[iso] || 0;
+    const classes = [
+      'activity-day',
+      count ? 'active' : '',
+      count >= 3 ? 'high' : count >= 2 ? 'medium' : '',
+      iso === todayIso ? 'today' : ''
+    ].filter(Boolean).join(' ');
+    const title = count
+      ? `${formatDate(iso)}: ${count} ${pluralizeActions(count)}`
+      : `${formatDate(iso)}: нет активности`;
+
+    cells.push(`<div class="${classes}" title="${title}" aria-label="${title}">${day}</div>`);
+  }
+
+  return `
+    <section class="activity-month">
+      <div class="activity-month-title">${monthTitle}</div>
+      <div class="activity-calendar-grid weekdays">
+        ${weekdays.map(day => `<div>${day}</div>`).join('')}
+      </div>
+      <div class="activity-calendar-grid">
+        ${cells.join('')}
+      </div>
+    </section>
+  `;
+}
+
+function getActivityStats() {
+  const map = collectActivityMap();
+  const dates = Object.keys(map).sort();
+  const totalActions = dates.reduce((sum, date) => sum + map[date], 0);
+
+  return {
+    map,
+    totalDays: dates.length,
+    totalActions,
+    streak: countActivityStreak(map)
+  };
+}
+
+function markActivity() {
+  if (!progress) return;
+  if (!progress.activity || typeof progress.activity !== 'object' || Array.isArray(progress.activity)) {
+    progress.activity = {};
+  }
+
+  const today = getTodayIsoDate();
+  progress.activity[today] = Math.max(progress.activity[today] || 0, 1);
+}
+
+function collectActivityMap() {
+  const map = {};
+  if (!progress?.phases) return map;
+
+  PHASES.forEach(phase => {
+    const ph = progress.phases[phase.id];
+    collectActivityDates(ph?.topics, map);
+    collectActivityDates(ph?.tasks, map);
+  });
+
+  collectStoredActivityDates(map);
+
+  return map;
+}
+
+function collectActivityDates(items, map) {
+  if (!items) return;
+  Object.values(items).forEach(date => {
+    if (!isIsoDate(date)) return;
+    map[date] = (map[date] || 0) + 1;
+  });
+}
+
+function collectStoredActivityDates(map) {
+  const activity = progress?.activity;
+  if (!activity || typeof activity !== 'object' || Array.isArray(activity)) return;
+
+  Object.entries(activity).forEach(([date, count]) => {
+    if (!isIsoDate(date)) return;
+    const safeCount = Math.max(1, Number(count) || 1);
+    map[date] = Math.max(map[date] || 0, safeCount);
+  });
+}
+
+function countActivityStreak(activityMap) {
+  let cursor = getTodayIsoDate();
+  if (!activityMap[cursor]) {
+    const yesterday = addDays(cursor, -1);
+    if (!activityMap[yesterday]) return 0;
+    cursor = yesterday;
+  }
+
+  let streak = 0;
+  while (activityMap[cursor]) {
+    streak++;
+    cursor = addDays(cursor, -1);
+  }
+
+  return streak;
+}
+
+function getActivityMonths(activityMap) {
+  const months = new Set([getTodayIsoDate().slice(0, 7)]);
+  Object.keys(activityMap).forEach(date => months.add(date.slice(0, 7)));
+
+  return [...months].sort().map(value => {
+    const [year, month] = value.split('-').map(Number);
+    return { year, month: month - 1 };
+  });
+}
+
+function isIsoDate(value) {
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function getTodayIsoDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function toIsoDate(year, month, day) {
+  return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
+function addDays(isoDate, amount) {
+  const [year, month, day] = isoDate.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCDate(date.getUTCDate() + amount);
+  return date.toISOString().slice(0, 10);
+}
+
+function pluralizeDays(count) {
+  return pluralizeRu(count, 'день', 'дня', 'дней');
+}
+
+function pluralizeActiveDays(count) {
+  return pluralizeRu(count, 'активный день', 'активных дня', 'активных дней');
+}
+
+function pluralizeActions(count) {
+  return pluralizeRu(count, 'действие', 'действия', 'действий');
+}
+
+function pluralizeRu(count, one, few, many) {
+  const mod10 = count % 10;
+  const mod100 = count % 100;
+  if (mod10 === 1 && mod100 !== 11) return one;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few;
+  return many;
 }
 
 // ──────────────────────────────────────────────
