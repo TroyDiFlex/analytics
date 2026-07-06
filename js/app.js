@@ -247,6 +247,7 @@ function openPhase(phaseId) {
 
     </div>
   `;
+  adjustAllTextareas();
 }
 
 // ──────────────────────────────────────────────
@@ -418,3 +419,32 @@ function formatDate(isoDate) {
   const d = new Date(isoDate);
   return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' });
 }
+
+// ──────────────────────────────────────────────
+//  АВТОРАСТЯГИВАНИЕ ТЕКСТОВЫХ ПОЛЕЙ
+// ──────────────────────────────────────────────
+function adjustTextareaHeight(el) {
+  if (!el) return;
+  el.style.height = 'auto';
+  const style = window.getComputedStyle(el);
+  const borderTop = parseFloat(style.borderTopWidth) || 0;
+  const borderBottom = parseFloat(style.borderBottomWidth) || 0;
+  el.style.height = (el.scrollHeight + borderTop + borderBottom) + 'px';
+}
+
+function adjustAllTextareas() {
+  const textareas = document.querySelectorAll('.phase-textarea, .task-note-input');
+  textareas.forEach(adjustTextareaHeight);
+}
+
+// Автоматически подстраиваем высоту при вводе
+document.addEventListener('input', e => {
+  if (e.target.classList && (e.target.classList.contains('phase-textarea') || e.target.classList.contains('task-note-input'))) {
+    adjustTextareaHeight(e.target);
+  }
+});
+
+// Корректируем высоту всех полей при изменении размеров окна
+window.addEventListener('resize', () => {
+  adjustAllTextareas();
+});

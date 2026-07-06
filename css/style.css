@@ -736,7 +736,8 @@ input, textarea {
   padding: 0.5rem 0.75rem;
   font-size: 0.8rem;
   color: var(--text-secondary);
-  resize: vertical;
+  resize: none;
+  overflow-y: hidden;
   min-height: 60px;
   outline: none;
   transition: border-color 0.15s;
@@ -802,7 +803,8 @@ input, textarea {
   padding: 0.75rem 1rem;
   font-size: 0.85rem;
   color: var(--text-primary);
-  resize: vertical;
+  resize: none;
+  overflow-y: hidden;
   min-height: 90px;
   outline: none;
   transition: border-color 0.2s;
