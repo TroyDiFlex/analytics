@@ -28,11 +28,14 @@ async function loadProgress() {
     const res = await fetch(`${url}?action=get&key=${encodeURIComponent(key)}`);
     const data = await res.json();
 
-    if (data.error === 'Unauthorized') {
-      throw new Error('Неверный ключ');
+    if (data && data.error === 'Unauthorized') {
+      throw new Error('Unauthorized');
     }
     return data;
   } catch (e) {
+    if (e.message === 'Unauthorized') {
+      throw e;
+    }
     console.warn('Google Sheets недоступен, читаю из localStorage:', e);
     const local = localStorage.getItem('progress_local');
     return local ? JSON.parse(local) : null;
