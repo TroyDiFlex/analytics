@@ -24,6 +24,16 @@
       <h1 class="login-title">Трекер аналитика</h1>
       <p class="login-subtitle">Введи секретный ключ для доступа к своему прогрессу</p>
       <div class="login-form">
+        <!-- Скрытое поле логина для менеджера паролей, чтобы разделять доступы к разным репозиториям на GitHub Pages -->
+        <input
+          type="text"
+          id="username-fake"
+          value="analytics"
+          style="position: absolute; top: -9999px; left: -9999px;"
+          autocomplete="username"
+          tabindex="-1"
+          aria-hidden="true"
+        />
         <div class="input-wrap">
           <i class="ti ti-key input-icon"></i>
           <input
@@ -31,7 +41,7 @@
             id="key-input"
             class="key-input"
             placeholder="Секретный ключ..."
-            autocomplete="off"
+            autocomplete="current-password"
           />
         </div>
         <button id="login-btn" class="login-btn" onclick="handleLogin()">
