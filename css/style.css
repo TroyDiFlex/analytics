@@ -857,6 +857,67 @@ input, textarea {
 }
 
 /* =============================================
+   MARKDOWN NOTES & CHECKBOXES
+   ============================================= */
+.note-container {
+  position: relative;
+  width: 100%;
+}
+
+.note-view-mode {
+  width: 100%;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  min-height: 90px;
+  line-height: 1.6;
+  cursor: text;
+  transition: border-color 0.2s;
+}
+
+.note-view-mode:hover {
+  border-color: var(--border-strong);
+}
+
+.note-view-mode p {
+  margin: 0 0 0.5rem 0;
+}
+.note-view-mode p:last-child {
+  margin-bottom: 0;
+}
+
+.md-checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+  margin-bottom: 0.25rem;
+}
+
+.md-checkbox-label .task-checkbox {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  border-width: 1px;
+  font-size: 11px;
+  border-radius: 4px;
+}
+
+.md-checkbox-done {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.md-completed {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+/* =============================================
    WELCOME SCREEN
    ============================================= */
 .welcome {

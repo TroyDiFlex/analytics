@@ -232,12 +232,18 @@ function openPhase(phaseId) {
       <!-- МОИ ЗАМЕТКИ -->
       <div class="phase-notes-block">
         <div class="section-title"><i class="ti ti-notes"></i> Мои заметки к этапу</div>
-        <textarea
-          class="phase-textarea"
-          id="phase-note-${phaseId}"
-          placeholder="Пиши сюда всё что угодно — выводы, ссылки, мысли..."
-          oninput="onPhaseNote(${phaseId}, this.value)"
-        >${ph.notes.phase || ''}</textarea>
+        <div class="note-container" id="phase-note-container-${phaseId}">
+          <div class="note-view-mode" onclick="enableNoteEditMode('phase', ${phaseId})">
+            ${renderMarkdownNote(ph.notes.phase || '', 'phase', phaseId)}
+          </div>
+          <textarea
+            class="phase-textarea hidden"
+            id="phase-note-${phaseId}"
+            placeholder="Пиши сюда всё что угодно — выводы, ссылки, мысли..."
+            onblur="disableNoteEditMode('phase', ${phaseId}, this.value)"
+            oninput="onPhaseNote(${phaseId}, this.value)"
+          >${ph.notes.phase || ''}</textarea>
+        </div>
       </div>
 
       <!-- СБРОСИТЬ -->
@@ -307,11 +313,18 @@ function renderTask(phaseId, idx, task, ph) {
           ${done ? `<div class="task-date"><i class="ti ti-calendar" style="font-size:11px"></i> Выполнено ${formatDate(date)}</div>` : ''}
         </div>
       </div>
-      <textarea
-        class="task-note-input"
-        placeholder="Заметка к заданию (результат, ссылка, вывод)..."
-        oninput="onTaskNote(${phaseId}, ${idx}, this.value)"
-      >${note}</textarea>
+      <div class="note-container" id="task-note-container-${phaseId}-${idx}">
+        <div class="note-view-mode" onclick="enableNoteEditMode('task', ${phaseId}, ${idx})">
+          ${renderMarkdownNote(note, 'task', phaseId, idx)}
+        </div>
+        <textarea
+          class="task-note-input hidden"
+          id="task-note-${phaseId}-${idx}"
+          placeholder="Заметка к заданию (результат, ссылка, вывод)..."
+          onblur="disableNoteEditMode('task', ${phaseId}, this.value, ${idx})"
+          oninput="onTaskNote(${phaseId}, ${idx}, this.value)"
+        >${note}</textarea>
+      </div>
     </div>
   `;
 }
@@ -448,3 +461,108 @@ document.addEventListener('input', e => {
 window.addEventListener('resize', () => {
   adjustAllTextareas();
 });
+
+// ──────────────────────────────────────────────
+//  MARKDOWN CHECKBOXES (NOTES)
+// ──────────────────────────────────────────────
+function renderMarkdownNote(text, type, phaseId, taskIdx = null) {
+  if (!text || !text.trim()) {
+    return `<div style="color: var(--text-muted); font-style: italic;">Нажмите, чтобы добавить заметку...</div>`;
+  }
+  
+  const lines = text.split('\n');
+  let html = '';
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // Check if line starts with "- [ ]" or "- [x]" or "[ ]" or "[x]"
+    const uncheckedMatch = line.match(/^(?:-\s*)?\[\s\]\s(.*)/);
+    const checkedMatch = line.match(/^(?:-\s*)?\[[xX]\]\s(.*)/);
+    
+    if (uncheckedMatch) {
+      html += `<label class="md-checkbox-label" onclick="event.stopPropagation(); toggleNoteCheckbox(event, '${type}', ${phaseId}, ${taskIdx}, ${i})">
+        <div class="task-checkbox"></div>
+        <span>${uncheckedMatch[1]}</span>
+      </label>`;
+    } else if (checkedMatch) {
+      html += `<label class="md-checkbox-label" onclick="event.stopPropagation(); toggleNoteCheckbox(event, '${type}', ${phaseId}, ${taskIdx}, ${i})">
+        <div class="task-checkbox md-checkbox-done"><i class="ti ti-check"></i></div>
+        <span class="md-completed">${checkedMatch[1]}</span>
+      </label>`;
+    } else {
+      html += `<p>${line || '<br>'}</p>`;
+    }
+  }
+  return html;
+}
+
+function toggleNoteCheckbox(event, type, phaseId, taskIdx, lineIndex) {
+  event.stopPropagation();
+  const ph = getPhaseProgress(phaseId);
+  
+  let rawText = '';
+  if (type === 'phase') {
+    rawText = ph.notes.phase || '';
+  } else {
+    rawText = ph.notes[`task_${taskIdx}`] || '';
+  }
+  
+  const lines = rawText.split('\n');
+  if (lineIndex >= 0 && lineIndex < lines.length) {
+    const line = lines[lineIndex];
+    if (line.match(/^(?:-\s*)?\[\s\]/)) {
+      lines[lineIndex] = line.replace(/^((?:-\s*)?)\[\s\]/, '$1[x]');
+    } else if (line.match(/^(?:-\s*)?\[[xX]\]/)) {
+      lines[lineIndex] = line.replace(/^((?:-\s*)?)\[[xX]\]/, '$1[ ]');
+    }
+    
+    const newText = lines.join('\n');
+    
+    if (type === 'phase') {
+      onPhaseNote(phaseId, newText);
+    } else {
+      onTaskNote(phaseId, taskIdx, newText);
+    }
+    
+    const containerId = type === 'phase' ? `phase-note-container-${phaseId}` : `task-note-container-${phaseId}-${taskIdx}`;
+    const container = document.getElementById(containerId);
+    if (container) {
+      const viewMode = container.querySelector('.note-view-mode');
+      const textarea = container.querySelector('textarea');
+      if (viewMode) viewMode.innerHTML = renderMarkdownNote(newText, type, phaseId, taskIdx);
+      if (textarea) textarea.value = newText;
+    }
+  }
+}
+
+function enableNoteEditMode(type, phaseId, taskIdx = null) {
+  const containerId = type === 'phase' ? `phase-note-container-${phaseId}` : `task-note-container-${phaseId}-${taskIdx}`;
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  
+  const viewMode = container.querySelector('.note-view-mode');
+  const textarea = container.querySelector('textarea');
+  
+  if (viewMode && textarea) {
+    viewMode.classList.add('hidden');
+    textarea.classList.remove('hidden');
+    textarea.focus();
+    adjustTextareaHeight(textarea);
+  }
+}
+
+function disableNoteEditMode(type, phaseId, value, taskIdx = null) {
+  const containerId = type === 'phase' ? `phase-note-container-${phaseId}` : `task-note-container-${phaseId}-${taskIdx}`;
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  
+  const viewMode = container.querySelector('.note-view-mode');
+  const textarea = container.querySelector('textarea');
+  
+  if (viewMode && textarea) {
+    textarea.classList.add('hidden');
+    viewMode.classList.remove('hidden');
+    viewMode.innerHTML = renderMarkdownNote(value, type, phaseId, taskIdx);
+  }
+}
